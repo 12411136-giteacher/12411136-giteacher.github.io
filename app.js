@@ -2414,6 +2414,13 @@ function bindTeacher() {
     });
   });
 
+  document.querySelectorAll("[data-student-filter-choice]").forEach((button) => {
+    button.addEventListener("click", () => {
+      studentListFilter[button.dataset.studentFilterChoice] = button.dataset.value;
+      render();
+    });
+  });
+
   document.querySelector("[data-refresh-students]")?.addEventListener("click", async () => {
     try {
       await loadTeacherData(true);
@@ -3694,6 +3701,13 @@ function teacherHome() {
 function teacherStudents() {
   const rows = filteredStudents();
   const all = teacherStudentRows();
+  const statusOptions = [
+    ["all", "全員"],
+    ["no_upload", "CSV未提出"],
+    ["stale", "7日以上更新なし"],
+    ["follow", "要フォロー"],
+    ["ready", "合格目安到達"]
+  ];
   return `
     <section class="panel">
       <div class="panel-header">
@@ -3704,18 +3718,20 @@ function teacherStudents() {
         </div>
       </div>
       <div class="panel-body">
-        <div class="management-toolbar">
-          <div class="field"><label>クラス</label><select data-student-filter="classId">
-            ${classes.map((cls) => `<option value="${cls.id}" ${studentListFilter.classId === cls.id ? "selected" : ""}>${cls.id}</option>`).join("")}
-            <option value="all" ${studentListFilter.classId === "all" ? "selected" : ""}>全クラス</option>
-          </select></div>
-          <div class="field"><label>表示対象</label><select data-student-filter="status">
-            <option value="all" ${studentListFilter.status === "all" ? "selected" : ""}>全員</option>
-            <option value="no_upload" ${studentListFilter.status === "no_upload" ? "selected" : ""}>CSV未提出</option>
-            <option value="stale" ${studentListFilter.status === "stale" ? "selected" : ""}>7日以上更新なし</option>
-            <option value="follow" ${studentListFilter.status === "follow" ? "selected" : ""}>要フォロー</option>
-            <option value="ready" ${studentListFilter.status === "ready" ? "selected" : ""}>合格目安到達</option>
-          </select></div>
+        <div class="student-filter-panel">
+          <div class="filter-group">
+            <p class="filter-label">クラス</p>
+            <div class="filter-chip-row">
+              ${classes.map((cls) => `<button class="filter-chip ${studentListFilter.classId === cls.id ? "active" : ""}" type="button" data-student-filter-choice="classId" data-value="${cls.id}">${cls.id}</button>`).join("")}
+              <button class="filter-chip ${studentListFilter.classId === "all" ? "active" : ""}" type="button" data-student-filter-choice="classId" data-value="all">全クラス</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <p class="filter-label">表示対象</p>
+            <div class="filter-chip-row">
+              ${statusOptions.map(([value, label]) => `<button class="filter-chip ${studentListFilter.status === value ? "active" : ""}" type="button" data-student-filter-choice="status" data-value="${value}">${label}</button>`).join("")}
+            </div>
+          </div>
           <div class="field search-field"><label>検索</label>
             <input data-student-filter="query" value="${escapeHtml(studentListFilter.query)}" placeholder="氏名・メール・出席番号">
           </div>
