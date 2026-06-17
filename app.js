@@ -2390,7 +2390,51 @@ function closeStudentNudge(rerender = true) {
   if (rerender) render();
 }
 
+function upgradeTeacherStudentFilterSelects() {
+  const optionSets = {
+    classId: [
+      ...classes.map((cls) => [cls.id, cls.id]),
+      ["all", "全クラス"]
+    ],
+    status: [
+      ["all", "全員"],
+      ["no_upload", "CSV未提出"],
+      ["stale", "7日以上更新なし"],
+      ["follow", "要フォロー"],
+      ["ready", "合格目安到達"],
+      ["below", "合格ライン未達"],
+      ["high", "高リスクのみ"],
+      ["steady", "順調"]
+    ]
+  };
+
+  document.querySelectorAll("select[data-student-filter]").forEach((select) => {
+    const key = select.dataset.studentFilter;
+    if (!optionSets[key]) return;
+
+    const field = select.closest(".field") || select.parentElement;
+    if (!field || field.dataset.upgradedFilter === "1") return;
+
+    const row = document.createElement("div");
+    row.className = "filter-chip-row";
+    optionSets[key].forEach(([value, label]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `filter-chip ${studentListFilter[key] === value ? "active" : ""}`;
+      button.dataset.studentFilterChoice = key;
+      button.dataset.value = value;
+      button.textContent = label;
+      row.appendChild(button);
+    });
+
+    select.replaceWith(row);
+    field.dataset.upgradedFilter = "1";
+  });
+}
+
 function bindTeacher() {
+  upgradeTeacherStudentFilterSelects();
+
   document.querySelectorAll("[data-class-filter]").forEach((button) => {
     button.addEventListener("click", () => {
       teacherClassFilter = button.dataset.classFilter;
@@ -4161,7 +4205,7 @@ function renderPasswordRecovery(message = "") {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=20260616-teacher-filter", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=20260617-admin-ux", { updateViaCache: "none" })
       .then((registration) => registration.update())
       .catch(() => {});
   });
