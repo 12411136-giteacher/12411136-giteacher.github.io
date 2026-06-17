@@ -2664,10 +2664,77 @@ function renderStudent() {
   bindStudent();
 }
 
+
+function learningBoost(userId, report) {
+  const domains = report.domains || [];
+  const domainReady = domains.filter((domain) => domain.total > 0 && domain.accuracy >= 30).length;
+  const dataScore = Math.min(100, Math.round((report.total / 80) * 100));
+  const accuracyScore = Math.min(100, Math.round((report.accuracy / 60) * 100));
+  const domainScore = Math.round((domainReady / Math.max(domains.length, 1)) * 100);
+  const readiness = report.total ? Math.round((dataScore * 0.25) + (accuracyScore * 0.5) + (domainScore * 0.25)) : 0;
+  const weakestDomain = domains
+    .filter((domain) => domain.total > 0)
+    .sort((a, b) => a.accuracy - b.accuracy || b.total - a.total)[0];
+  const target = weakestDomain || domains.find((domain) => domain.total === 0) || null;
+
+  if (!report.total) {
+    return {
+      readiness,
+      label: "分析準備中",
+      mission: "過去問道場で10問解いてCSVをアップロード",
+      reason: "まず学習履歴を取り込むと、苦手分野と次の行動が見えるようになります。",
+      steps: ["過去問道場で10問解く", "CSVをダウンロード", "この画面でCSVをアップロード"]
+    };
+  }
+  if (report.total < 20) {
+    return {
+      readiness,
+      label: "データ収集中",
+      mission: "あと20問まで演習して分析精度を上げる",
+      reason: `現在は${report.total}問です。20問を超えると、苦手分野の判断が安定してきます。`,
+      steps: ["過去問道場で追加演習", "解いた分をCSVで追加", "正答率の変化を見る"]
+    };
+  }
+  if (target && target.total === 0) {
+    return {
+      readiness,
+      label: "未確認分野あり",
+      mission: `${target.domain}を10問だけ解く`,
+      reason: "未確認分野があると、合格条件の各分野30%以上を判断できません。",
+      steps: [`${target.domain}に絞って10問解く`, "間違えた問題の解説を読む", "CSVを追加してゲージを更新"]
+    };
+  }
+  if (target && target.accuracy < 30) {
+    return {
+      readiness,
+      label: "重点復習",
+      mission: `${target.domain}を10問だけ解き直す`,
+      reason: `${target.domain}が${pct(target.accuracy)}で、分野別の合格目安30%を下回っています。`,
+      steps: ["間違えた問題を3問見直す", `${target.domain}を10問解く`, "正答率30%以上に戻す"]
+    };
+  }
+  if (report.accuracy < 60) {
+    return {
+      readiness,
+      label: "全体底上げ",
+      mission: `${report.weak[0]?.name || "苦手分野"}を15分だけ復習`,
+      reason: `全体正答率が${pct(report.accuracy)}です。60%に近づけるには、苦手の一点突破が効きます。`,
+      steps: ["苦手トップの解説を読む", "同じ分野を10問解く", "正答率60%との差を確認"]
+    };
+  }
+  return {
+    readiness,
+    label: "合格目安圏",
+    mission: "別年度を20問解いて安定度を確認",
+    reason: "現在のデータでは合格目安に届いています。別年度でも崩れないか確認しましょう。",
+    steps: ["別年度を20問解く", "CSVを追加", "苦手が増えていないか確認"]
+  };
+}
 function studentHome() {
   const user = currentUser();
   const report = pastResultSummary(user.id);
   const plan = buildReportPlan(user.id, report);
+  const boost = learningBoost(user.id, report);
   return `
     <section class="student-home analysis-home">
       ${studentMessagePanel(user.id)}
@@ -2694,6 +2761,42 @@ function studentHome() {
       ${reportImportProgress()}
 
       <div class="analysis-grid">
+        <section class="panel boost-panel">
+          <div class="panel-header">
+            <h2 class="panel-title">今日の15分ミッション</h2>
+            <span class="tag green">${boost.label}</span>
+          </div>
+          <div class="panel-body">
+            <div class="boost-head">
+              <div>
+                <p class="next-main">${boost.mission}</p>
+                <p class="hint">${boost.reason}</p>
+              </div>
+              <div class="readiness-ring" style="--score:${boost.readiness}%">
+                <strong>${boost.readiness}</strong>
+                <span>到達度</span>
+              </div>
+            </div>
+            <div class="mission-checklist">
+              ${boost.steps.map((step) => `<span>${escapeHtml(step)}</span>`).join("")}
+            </div>
+          </div>
+        </section>
+
+        <section class="panel roadmap-panel">
+          <div class="panel-header"><h2 class="panel-title">合格ロードマップ</h2></div>
+          <div class="panel-body roadmap-body">
+            <div class="roadmap-item ${report.total >= 20 ? "done" : ""}">
+              <strong>分析に必要な量</strong><span>${Math.min(report.total, 20)}/20問</span>
+            </div>
+            <div class="roadmap-item ${report.accuracy >= 60 ? "done" : ""}">
+              <strong>全体60%以上</strong><span>${report.total ? pct(report.accuracy) : "-"}</span>
+            </div>
+            ${report.domains.map((domain) => `<div class="roadmap-item ${domain.total && domain.accuracy >= 30 ? "done" : ""}">
+              <strong>${domain.domain} 30%以上</strong><span>${domain.total ? pct(domain.accuracy) : "未確認"}</span>
+            </div>`).join("")}
+          </div>
+        </section>
         <section class="panel analysis-main-panel">
           <div class="panel-header"><h2 class="panel-title">次にやること</h2></div>
           <div class="panel-body">
