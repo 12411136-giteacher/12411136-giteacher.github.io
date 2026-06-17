@@ -1,4 +1,4 @@
-const CACHE_NAME = "it-passport-admin-ux-v1";
+const CACHE_NAME = "it-passport-teacher-control-hold-v1";
 const STATIC_ASSETS = [
   "./manifest.webmanifest",
   "./icons/icon-192.svg",

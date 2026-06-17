@@ -1770,8 +1770,7 @@ function studentProfile() {
 function renderTeacher() {
   if (USE_REMOTE_API) {
     loadTeacherData(false).then((loaded) => {
-      const filtering = Boolean(document.querySelector("[data-student-filter]:focus"));
-      if (loaded && currentUser()?.role === "teacher" && !filtering) render();
+      if (loaded && currentUser()?.role === "teacher" && !isTeacherControlActive()) render();
     }).catch((error) => console.warn("loadTeacherData failed", error));
     if (currentView === "questions") {
       loadTeacherQuestions().then((loaded) => {
@@ -2432,8 +2431,25 @@ function upgradeTeacherStudentFilterSelects() {
   });
 }
 
+let teacherControlHoldUntil = 0;
+
+function holdTeacherControls() {
+  teacherControlHoldUntil = Date.now() + 1800;
+}
+
+function isTeacherControlActive() {
+  const active = document.activeElement;
+  return Date.now() < teacherControlHoldUntil ||
+    Boolean(active?.closest?.("[data-student-filter], [data-student-filter-choice], .student-filter-panel, #teacher-message-form, .management-toolbar"));
+}
+
 function bindTeacher() {
   upgradeTeacherStudentFilterSelects();
+
+  document.querySelectorAll("[data-student-filter], [data-student-filter-choice], #teacher-message-form select, #teacher-message-form input, #teacher-message-form textarea").forEach((control) => {
+    control.addEventListener("pointerdown", holdTeacherControls);
+    control.addEventListener("focus", holdTeacherControls);
+  });
 
   document.querySelectorAll("[data-class-filter]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -3497,8 +3513,7 @@ function teacherStudentRows() {
 function renderTeacher() {
   if (USE_REMOTE_API) {
     loadTeacherData(false).then((loaded) => {
-      const filtering = Boolean(document.querySelector("[data-student-filter]:focus"));
-      if (loaded && currentUser()?.role === "teacher" && !filtering) render();
+      if (loaded && currentUser()?.role === "teacher" && !isTeacherControlActive()) render();
     }).catch((error) => console.warn("loadTeacherData failed", error));
   }
   if (!["home", "students", "messages"].includes(currentView)) currentView = "home";
@@ -3766,8 +3781,7 @@ function teacherStudentRows() {
 function renderTeacher() {
   if (USE_REMOTE_API) {
     loadTeacherData(false).then((loaded) => {
-      const filtering = Boolean(document.querySelector("[data-student-filter]:focus"));
-      if (loaded && currentUser()?.role === "teacher" && !filtering) render();
+      if (loaded && currentUser()?.role === "teacher" && !isTeacherControlActive()) render();
     }).catch((error) => console.warn("loadTeacherData failed", error));
   }
   if (!["home", "students", "messages"].includes(currentView)) currentView = "home";
@@ -3891,7 +3905,7 @@ function teacherStudents() {
       </div>
       <div class="table-wrap">
         <table class="teacher-student-table">
-          <thead><tr><th>状態</th><th>クラス</th><th>番号</th><th>氏名</th><th>最終CSV</th><th>取込履歴</th><th>正答率</th><th>苦手</th><th>次の対応</th></tr></thead>
+          <thead><tr><th>状態</th><th>クラス</th><th>番号</th><th>氏名</th><th>ニックネーム</th><th>最終CSV</th><th>取込履歴</th><th>正答率</th><th>苦手</th><th>次の対応</th></tr></thead>
           <tbody>${rows.map((row) => {
             const { user, upload, analysis, weakDomain } = row;
             const status = !upload.hasUpload ? "未提出" : row.stale ? "更新停止" : row.needsFollow ? "要フォロー" : "順調";
@@ -3903,14 +3917,14 @@ function teacherStudents() {
               : "別年度で確認";
             return `<tr>
               <td><span class="tag ${level}">${status}</span></td>
-              <td>${escapeHtml(user.classId)}</td><td>${escapeHtml(user.seatNo)}</td><td>${escapeHtml(user.name)}</td>
+              <td>${escapeHtml(user.classId)}</td><td>${escapeHtml(user.seatNo)}</td><td>${escapeHtml(user.name)}</td><td>${escapeHtml(user.username || "-")}</td>
               <td>${upload.latestUpload ? formatDateTime(upload.latestUpload) : "-"}</td>
               <td>${upload.uploadCount}回 / ${upload.total}問</td>
               <td>${upload.total ? pct(analysis.accuracy) : "-"}</td>
               <td>${weakDomain ? `${weakDomain.domain} ${pct(weakDomain.accuracy)}` : "-"}</td>
               <td>${action}</td>
             </tr>`;
-          }).join("") || `<tr><td colspan="9">条件に合う学生はいません。</td></tr>`}</tbody>
+          }).join("") || `<tr><td colspan="10">条件に合う学生はいません。</td></tr>`}</tbody>
         </table>
       </div>
     </section>
@@ -4205,7 +4219,7 @@ function renderPasswordRecovery(message = "") {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=20260617-admin-ux", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=20260617-teacher-control-hold", { updateViaCache: "none" })
       .then((registration) => registration.update())
       .catch(() => {});
   });
