@@ -3,18 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ITパスポート学習サポートへ移動中</title>
-  <script>
-    const target = "https://12411136-giteacher.github.io/it-passport-assist/";
-    location.replace(target + location.search + location.hash);
-  </script>
+  <meta name="theme-color" content="#1f6f78">
+  <title>ITパスポート学習サポート</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css?v=20260616-teacher-filter">
 </head>
 <body>
-  <p>ITパスポート学習サポートへ移動しています。</p>
-  <p><a id="fallback" href="https://12411136-giteacher.github.io/it-passport-assist/">開かない場合はこちら</a></p>
-  <script>
-    document.getElementById("fallback").href =
-      "https://12411136-giteacher.github.io/it-passport-assist/" + location.search + location.hash;
-  </script>
+  <div id="app"></div>
+  <script src="./supabase-config.js?v=20260616-teacher-filter"></script>
+  <script src="./supabase-client.js?v=20260616-teacher-filter"></script>
+  <script src="./app.js?v=20260616-teacher-filter"></script>
 </body>
 </html>
